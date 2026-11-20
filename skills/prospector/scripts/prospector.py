@@ -4,6 +4,7 @@
   prospector.py init <dir> <coach_handle>
   prospector.py candidates <dir> <date> [--limit 200]   likers.json or followers.json -> pull.txt (dedupe + drop pages)
   prospector.py sheet <dir> <date>                      profiles.json -> compact list to judge
+  prospector.py cap <dir> <date>                        today's daily limit (ramp 50, 75, 100)
   prospector.py queue <dir> <date>                      approved rows not sent yet + what the caps allow
   prospector.py log <dir> <date> <handle> <sent|failed|skipped|ai_on|follows|not_follower|warning> [note]
 """
@@ -11,7 +12,8 @@ import csv, json, re, sys
 from datetime import datetime
 from pathlib import Path
 
-DEFAULT_CONFIG = {"coach_handle": "", "setdm_workspace": "", "daily_cap": 30, "hourly_cap": 20,
+DEFAULT_CONFIG = {"coach_handle": "", "setdm_workspace": "", "daily_cap": 100, "hourly_cap": 20,
+                  "ramp": [[0, 50], [7, 75], [14, 100]],
                   "max_followers": 20000, "min_followers": 0}
 PAGE_WORDS = re.compile(r"(shop|store|official|brand|boutique|apparel|clothing|supps|supplement|nutrition|"
                         r"agency|media|magazine|news|daily|memes|coach|trainer|"
@@ -36,6 +38,22 @@ def sent_handles(d):
 
 def cfg(d):
     return {**DEFAULT_CONFIG, **json.loads((d / "config.json").read_text())}
+
+
+def cap_today(d, date):
+    """Ramp by days since the first send: 50, then 75 after a week, then daily_cap (100) after two.
+    Any warning in the last 14 days drops it back to the first step."""
+    c = cfg(d)
+    p = d / "sent.csv"
+    rows = list(csv.DictReader(p.open())) if p.exists() else []
+    sends = sorted(r["date"] for r in rows if r["status"] == "sent")
+    day = datetime.fromisoformat(date)
+    recent_warn = any(r["status"] == "warning" and (day - datetime.fromisoformat(r["date"])).days < 14 for r in rows)
+    if not sends or recent_warn:
+        return min(c["ramp"][0][1], c["daily_cap"])
+    age = (day - datetime.fromisoformat(sends[0])).days
+    step = max(v for days, v in c["ramp"] if age >= days)
+    return min(step, c["daily_cap"])
 
 
 def init(d, coach):
@@ -147,8 +165,9 @@ def queue(d, date):
     q = [r for r in approved(d, date) if r["handle"] not in done | sent | block | nf]
     need_ai = [r["handle"] for r in log if r["status"] == "sent"
                and r["handle"] not in {x["handle"] for x in log if x["status"] == "ai_on"}]
-    room = max(0, min(c["daily_cap"] - sent_today, c["hourly_cap"] - sent_hour))
-    print(f"approved left {len(q)} | sent today {sent_today}/{c['daily_cap']} | this hour {sent_hour}/{c['hourly_cap']} | can send now {room}")
+    cap = cap_today(d, date)
+    room = max(0, min(cap - sent_today, c["hourly_cap"] - sent_hour))
+    print(f"approved left {len(q)} | sent today {sent_today}/{cap} | this hour {sent_hour}/{c['hourly_cap']} | can send now {room}")
     print("AI toggle still off for:", ", ".join(need_ai) or "none")
     for r in q[:room]:
         print(f"@{r['handle']} | {r['opener']}")
@@ -181,6 +200,8 @@ if __name__ == "__main__":
         candidates(d, a[2], lim)
     elif cmd == "sheet":
         sheet(d, a[2])
+    elif cmd == "cap":
+        print(cap_today(d, a[2]))
     elif cmd == "queue":
         queue(d, a[2])
     elif cmd == "log":

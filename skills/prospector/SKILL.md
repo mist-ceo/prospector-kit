@@ -27,7 +27,7 @@ Work folder: `~/Prospector/<handle>/`. Helper: `python3 ~/.claude/skills/prospec
 1. **Only this computer, only this Chrome.** It runs in the Chrome the coach already uses for Instagram, on his normal home or phone network. Never on a server, a cloud browser, a VPN or a second Chrome profile.
 2. **No passwords, no Instagram API keys.** Claude only uses a session the coach logged into himself. If Instagram asks for a login, a code or "was this you", stop and hand it to the coach.
 3. **No bots, no private API.** Chrome is the only send path. GetAnyAPI reads likers and profiles, so the coach's account only sends and runs the follow check.
-4. **Pace:** max `hourly_cap` (20) per hour, random 90 to 300 s between sends, a 10 to 20 min break every 15. `daily_cap` starts at 30 for the first week, then 50. Never above 50 while SetDM is also replying from the account.
+4. **Pace:** max `hourly_cap` (20) per hour, random 90 to 300 s between sends, a 10 to 20 min break every 15. Daily limit ramps to about 100: 50 a day in week 1, 75 in week 2, then 100 (`prospector.py cap` gives today's number). Any Instagram warning drops it back to 50 for 14 days. 100 a day takes about 5 to 6 hours of sending, spread through the day.
 5. **Type like a person:** open the DM, type the opener (don't paste), send. No links, no pitch, no voice notes in the opener.
 6. **Stop on any warning.** "Try again later", "We restrict certain activity", an action block, a checkpoint, or 3 failed sends in a row: stop, `log ... <handle> warning`, tell the coach, no sends for 48 h (the helper enforces it).
 7. **Never message** anyone in `blacklist.txt` or `sent.csv`, a verified account, a business or brand page, another coach, or anyone who looks under 21.
@@ -53,13 +53,13 @@ Check each one and say in one line what's missing:
 
 Source: people who liked his recent reels AND follow him. Following means the DM lands in his Primary inbox and they already know him.
 
-1. **Likers.** Read `pull_workbench.py`, set MODE = "likers", COACH = handle, REELS = 12, pass the whole text to `COMPOSIO_REMOTE_WORKBENCH`. About 1.5 cents. `curl -sL "<url>" -o ~/Prospector/<handle>/batches/<date>/likers.json`. People who liked 2+ reels come first. If it fails or he has under 5 reels: open `instagram.com/<handle>/followers/` in Chrome, scroll the list slowly (one scroll every 1.5 to 3 s, max 40), save `followers.json` as `[{"username","full_name"}]`.
-2. `prospector.py candidates ~/Prospector/<handle> <date> --limit 200` writes `pull.txt`.
-3. **Profiles.** Same script, MODE = "profiles", HANDLES = the lines of `pull.txt`. About 12 cents for 200. `curl` to `profiles.json`.
+1. **Likers.** Read `pull_workbench.py`, set MODE = "likers", COACH = handle, REELS = 12 (raise to 24 if yesterday's batch came up short of the cap), pass the whole text to `COMPOSIO_REMOTE_WORKBENCH`. About 1.5 cents. `curl -sL "<url>" -o ~/Prospector/<handle>/batches/<date>/likers.json`. People who liked 2+ reels come first. If it fails or he has under 5 reels: open `instagram.com/<handle>/followers/` in Chrome, scroll the list slowly (one scroll every 1.5 to 3 s, max 40), save `followers.json` as `[{"username","full_name"}]`.
+2. `prospector.py candidates ~/Prospector/<handle> <date> --limit 400` writes `pull.txt`.
+3. **Profiles.** Same script, MODE = "profiles", HANDLES = the lines of `pull.txt`. About 24 cents for 400. `curl` to `profiles.json`.
 4. `prospector.py sheet ~/Prospector/<handle> <date>` prints the profiles worth judging.
-5. **Judge** each against `signals.md`. Drop anyone who looks under 21, coaches, pages, bots, and anyone outside who he coaches. Keep the hits, best first, up to `daily_cap` plus 20%.
-6. **Follow check (Chrome, keepers only).** Open `instagram.com/<handle>/followers/`, type a keeper's handle in the dialog's search box, wait 2 to 4 s, read the result. Found: `prospector.py log ~/Prospector/<handle> <date> <lead> follows`. Not found: `... not_follower`, drop them. Clear the box, pause 3 to 8 s, next. Max 60 checks. Never open their profiles.
-7. **Write** `batches/<date>/approval.md`, followers only, up to `daily_cap`:
+5. **Judge** each against `signals.md`. Drop anyone who looks under 21, coaches, pages, bots, and anyone outside who he coaches. Keep the hits, best first, up to today's `cap` plus 20%.
+6. **Follow check (Chrome, keepers only).** Open `instagram.com/<handle>/followers/`, type a keeper's handle in the dialog's search box, wait 2 to 4 s, read the result. Found: `prospector.py log ~/Prospector/<handle> <date> <lead> follows`. Not found: `... not_follower`, drop them. Clear the box, pause 3 to 8 s, next. Max 130 checks, in blocks of 30 with a 5 min pause. Never open their profiles.
+7. **Write** `batches/<date>/approval.md`, followers only, up to today's `cap`:
 
    ```
    | handle | name | signals | why | opener |
