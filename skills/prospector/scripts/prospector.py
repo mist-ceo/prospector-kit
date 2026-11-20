@@ -13,11 +13,17 @@ from datetime import datetime
 from pathlib import Path
 
 DEFAULT_CONFIG = {"coach_handle": "", "setdm_workspace": "", "daily_cap": 100, "hourly_cap": 20,
+                  "never_bio": [],
                   "ramp": [[0, 50], [7, 75], [14, 100]],
                   "max_followers": 20000, "min_followers": 0}
 PAGE_WORDS = re.compile(r"(shop|store|official|brand|boutique|apparel|clothing|supps|supplement|nutrition|"
                         r"agency|media|magazine|news|daily|memes|coach|trainer|"
                         r"realestate|crypto|forex|_ig$|promo|deals|giveaway)", re.I)
+MINOR = re.compile(r"(\b1[0-7] ?(y/?o|yrs?|years? old)\b|\bclass of 20(2[6-9]|3\d)\b|\bu1[0-8]\b|\bunder ?1[0-8]\b|"
+                   r"high ?school|middle school|\bgrade (9|1[0-2])\b|\b(born|b\.|bday|🎂) ?(in )?20(0[6-9]|1\d)\b)", re.I)
+SELLER = re.compile(r"(\bcoach(ing)?\b|personal trainer|\btrainer\b|\bpt\b|online training|\bdm (me )?for\b|onlyfans|"
+                    r"\bof\b ?link|\bcrypto\b|\bforex\b|\bday ?trad|\bpromo|\bcollabs?\b|\bambassador\b|\bugc\b|"
+                    r"\bmlm\b|\bherbalife\b|\bcashapp\b)", re.I)
 BUSINESS_CATS = re.compile(r"(shop|store|brand|product|company|business|agency|media|news|magazine|"
                            r"gym|fitness|coach|trainer|nutrition|restaurant|real estate)", re.I)
 
@@ -107,6 +113,7 @@ def sheet(d, date):
     liked = {}
     if (b / "likers.json").exists():
         liked = {x["username"]: len(x.get("liked") or []) for x in json.loads((b / "likers.json").read_text())}
+    never = re.compile("|".join(c["never_bio"]), re.I) if c["never_bio"] else None
     keep, drop = [], {}
     for h, p in prof.items():
         why = None
@@ -122,6 +129,16 @@ def sheet(d, date):
             why = "business"
         elif p.get("is_private") and not (p.get("biography") or "").strip():
             why = "private, no bio"
+        elif MINOR.search(p.get("biography") or ""):
+            why = "minor"
+        elif SELLER.search(p.get("biography") or ""):
+            why = "coach or seller"
+        elif (p.get("following_count") or 0) >= 3000 and fc < 300:
+            why = "bot or follow-for-follow"
+        elif not p.get("media_count") and not (p.get("biography") or "").strip() and not (p.get("full_name") or "").strip():
+            why = "empty account"
+        elif never and never.search(f"{p.get('biography') or ''} {p.get('full_name') or ''}"):
+            why = "coach's never list"
         if why:
             drop[why] = drop.get(why, 0) + 1
             continue

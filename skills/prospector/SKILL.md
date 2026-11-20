@@ -43,7 +43,14 @@ Check each one and say in one line what's missing:
 ## Setup (once)
 
 1. `prospector.py init ~/Prospector/<handle> <handle>`.
-2. **Money signals.** Ask the coach for 10 Instagram handles of clients he closed in DMs. Pull their profiles (workbench, MODE "profiles"). Write `signals.md`: what those 10 have in common that shows on a profile (country, language, job title, age look, travel, family, gym photos, the problem he solves). Strong signals (1 is enough), weak (need 2), never. Keep it loose: too narrow and it finds nobody.
+2. **Money signals.** Ask for Instagram handles of clients he closed in DMs, up to 10. Use what he has:
+   - **10 or more:** pull their profiles (workbench, MODE "profiles") and write the signals from what they have in common.
+   - **1 to 9:** pull those, then fill the gaps from his answers to the questions below.
+   - **None (new coach):** build it from the questions alone, plus his onboarding answers or ICP doc if he has one. Also ask for 3 to 5 people who booked a call or asked for the price, even if they didn't buy, and pull those.
+
+   Questions (skip any his docs already answer): Who's your best client: age, man or woman, where they live, what they do for work? What problem do they come to you with? What do they usually earn, or what tells you they can afford you? Who wastes your time in the DMs?
+
+   Write `signals.md`: strong signals (1 is enough), weak (need 2), and a **Never** list (who he can't help or won't take: wrong gender, wrong country or language, students, under a set age, other coaches). Put the Never words that show up in bios (e.g. "student", "uni", a city he can't serve) into `config.json` `never_bio` so the helper drops them before judging. Keep strong and weak loose: too narrow and it finds nobody. After 2 weeks, rebuild it from the leads who replied and booked (in sent.csv and SetDM).
 3. **Opener.** Ask for 3 openers he already sends and likes. Write `opener.md`: first name, one real detail from their profile, one easy question. His spelling and tone, no link, no offer. Every opener reads different, and a second message is never a copy of the first.
 4. **Blacklist.** Ask for family, friends, clients and team handles. One per line.
 5. **Schedule.** Create a scheduled task in Claude, every day at 07:30 local: "Run /prospector batch". Tell the coach the Mac has to be on and Claude open at that time.
@@ -56,7 +63,7 @@ Source: people who liked his recent reels AND follow him. Following means the DM
 1. **Likers.** Read `pull_workbench.py`, set MODE = "likers", COACH = handle, REELS = 12 (raise to 24 if yesterday's batch came up short of the cap), pass the whole text to `COMPOSIO_REMOTE_WORKBENCH`. About 1.5 cents. `curl -sL "<url>" -o ~/Prospector/<handle>/batches/<date>/likers.json`. People who liked 2+ reels come first. If it fails or he has under 5 reels: open `instagram.com/<handle>/followers/` in Chrome, scroll the list slowly (one scroll every 1.5 to 3 s, max 40), save `followers.json` as `[{"username","full_name"}]`.
 2. `prospector.py candidates ~/Prospector/<handle> <date> --limit 400` writes `pull.txt`.
 3. **Profiles.** Same script, MODE = "profiles", HANDLES = the lines of `pull.txt`. About 24 cents for 400. `curl` to `profiles.json`.
-4. `prospector.py sheet ~/Prospector/<handle> <date>` prints the profiles worth judging.
+4. `prospector.py sheet ~/Prospector/<handle> <date>` drops the obvious no-fits before you spend time judging: pages and business categories, verified accounts, big accounts, private with no bio, minors (age, school or birth year in the bio), coaches, trainers and sellers (OnlyFans, crypto, forex, MLM, promo), bots and follow-for-follow, empty accounts, and the coach's `never_bio` words. It prints the rest and the count per reason.
 5. **Judge** each against `signals.md`. Drop anyone who looks under 21, coaches, pages, bots, and anyone outside who he coaches. Keep the hits, best first, up to today's `cap` plus 20%.
 6. **Follow check (Chrome, keepers only).** Open `instagram.com/<handle>/followers/`, type a keeper's handle in the dialog's search box, wait 2 to 4 s, read the result. Found: `prospector.py log ~/Prospector/<handle> <date> <lead> follows`. Not found: `... not_follower`, drop them. Clear the box, pause 3 to 8 s, next. Max 130 checks, in blocks of 30 with a 5 min pause. Never open their profiles.
 7. **Write** `batches/<date>/approval.md`, followers only, up to today's `cap`:
