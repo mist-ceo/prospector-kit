@@ -1,6 +1,6 @@
 ---
 name: prospector
-description: "Use when the coach wants personalized daily outreach to warm people on Instagram: '/prospector', 'prospector setup', 'build today's batch', 'send the approved batch', or when the morning scheduled task fires. Setup turns 10 closed clients into money signals and writes the opener rules. Each morning it pulls people who liked the coach's recent reels (GetAnyAPI through Composio), checks their profiles, confirms they follow the coach in his own Chrome, and writes an approval sheet with a custom opener per lead. After the coach approves, it sends slowly from his Instagram in Chrome and switches the SetDM AI on for every lead it messaged."
+description: "Use when the coach wants personalized daily outreach to warm people on Instagram: '/prospector', 'prospector setup', 'build today's batch', 'send the approved batch', or when the morning scheduled task fires. Setup turns 10 closed clients into money signals and writes the opener rules. Each morning it ranks warm people hottest to coldest (follows + liked 2+ reels, follows + liked 1, follows, story viewers; likers who don't follow are never messaged), checks their profiles, and writes an approval sheet with a custom opener per lead. After the coach approves, it sends slowly from his Instagram in Chrome and switches the SetDM AI on for every lead it messaged."
 ---
 
 # Prospector
@@ -19,7 +19,8 @@ Work folder: `~/Prospector/<handle>/`. Helper: `python3 ~/.claude/skills/prospec
   blacklist.txt    family, friends, clients, team. Never messaged.
   sent.csv         every handle ever messaged (never messaged twice)
   seen.txt         every handle already checked (never paid for twice)
-  batches/<date>/  likers.json, pull.txt, profiles.json, approval.md, log.csv
+  waiting.txt      liked + fit, not following yet. Never sent until they follow
+  batches/<date>/  likers.json, followers.json, story_viewers.json, sources.json, pull.txt, profiles.json, approval.md, log.csv
 ```
 
 ## Instagram safety (read before any send)
@@ -58,24 +59,35 @@ Check each one and say in one line what's missing:
 
 ## Batch (every morning)
 
-Source: people who liked his recent reels AND follow him. Following means the DM lands in his Primary inbox and they already know him.
+**Priority, hottest to coldest.** Fill the day's list from the top down:
 
-1. **Likers.** Read `pull_workbench.py`, set MODE = "likers", COACH = handle, REELS = 12 (raise to 24 if yesterday's batch came up short of the cap), pass the whole text to `COMPOSIO_REMOTE_WORKBENCH`. About 1.5 cents. `curl -sL "<url>" -o ~/Prospector/<handle>/batches/<date>/likers.json`. People who liked 2+ reels come first. If it fails or he has under 5 reels: open `instagram.com/<handle>/followers/` in Chrome, scroll the list slowly (one scroll every 1.5 to 3 s, max 40), save `followers.json` as `[{"username","full_name"}]`.
-2. `prospector.py candidates ~/Prospector/<handle> <date> --limit 400` writes `pull.txt`.
+| Tier | Who |
+|---|---|
+| T1 | follows him AND liked 2+ of his reels |
+| T2 | follows him AND liked 1 reel |
+| T3 | follows him (newest followers) |
+| T4 | watched his story |
+| Never | liked but doesn't follow. Not messaged until they follow. They wait in `waiting.txt` and come back as T1 or T2 the day they show up as a follower. |
+
+1. **Collect the sources** into `batches/<date>/`:
+   - `likers.json`: read `pull_workbench.py`, set MODE = "likers", COACH = handle, REELS = 24, pass the whole text to `COMPOSIO_REMOTE_WORKBENCH`, `curl -sL "<url>" -o .../likers.json`. About 3 cents.
+   - `followers.json` (his Chrome): open `instagram.com/<handle>/followers/`, scroll the dialog slowly (one scroll every 1.5 to 3 s, max 60), save `[{"username","full_name"}]`. Newest followers come first. These are confirmed followers, no follow check needed.
+   - `story_viewers.json` (his Chrome): open his own active story, open "Seen by" / the viewer list, scroll it slowly the same way, save `[{"username","full_name"}]`. No active story or no viewer list on the web: skip it.
+2. `prospector.py candidates ~/Prospector/<handle> <date>` merges the sources, drops blacklist, sent, already checked and pages, and writes `pull.txt` in tier order (T1, T2, likers still needing a follow check, T3, T4) plus `sources.json` with each lead's tier.
 3. **Profiles.** Same script, MODE = "profiles", HANDLES = the lines of `pull.txt`. About 24 cents for 400. `curl` to `profiles.json`.
-4. `prospector.py sheet ~/Prospector/<handle> <date>` drops the obvious no-fits before you spend time judging: pages and business categories, verified accounts, big accounts, private with no bio, minors (age, school or birth year in the bio), coaches, trainers and sellers (OnlyFans, crypto, forex, MLM, promo), bots and follow-for-follow, empty accounts, and the coach's `never_bio` words. It prints the rest and the count per reason.
-5. **Judge** each against `signals.md`. Drop anyone who looks under 21, coaches, pages, bots, and anyone outside who he coaches. Keep the hits, best first, up to today's `cap` plus 20%.
-6. **Follow check (Chrome, keepers only).** Open `instagram.com/<handle>/followers/`, type a keeper's handle in the dialog's search box, wait 2 to 4 s, read the result. Found: `prospector.py log ~/Prospector/<handle> <date> <lead> follows`. Not found: `... not_follower`, drop them. Clear the box, pause 3 to 8 s, next. Max 130 checks, in blocks of 30 with a 5 min pause. Never open their profiles.
-7. **Write** `batches/<date>/approval.md`, followers only, up to today's `cap`:
+4. `prospector.py sheet ~/Prospector/<handle> <date>` drops the obvious no-fits before you judge: pages and business categories, verified, big accounts, private with no bio, minors (age, school or birth year in the bio), coaches, trainers and sellers (OnlyFans, crypto, forex, MLM, promo), bots and follow-for-follow, empty accounts, bios and names mostly in a non-Latin script (Arabic, Persian, Cyrillic, Hindi, Chinese; `latin_only` in config.json, on by default, turn it off for a coach who sells in those languages), the coach's `never_bio` words. It prints the rest in tier order with the count per drop reason.
+5. **Judge** each against `signals.md`, including its Never list (wrong gender, wrong country or language, who he can't help). Keep the fits.
+6. **Follow check (his Chrome), only for kept leads tagged CHECK FOLLOW.** In `instagram.com/<handle>/followers/`, type the lead's handle in the dialog's search box, wait 2 to 4 s, read the result. Found: `prospector.py log ~/Prospector/<handle> <date> <lead> follows`, they become T1 or T2. Not found: `... not_follower`, they go to `waiting.txt` and are NOT sent. Clear the box, pause 3 to 8 s. Blocks of 30 with a 5 min pause, max 130 checks. Never open their profiles.
+7. **Write** `batches/<date>/approval.md`, up to today's `cap`, T1 first, then T2, T3, T4. Never a liker who didn't pass the follow check.
 
    ```
-   | handle | name | signals | why | opener |
-   |---|---|---|---|---|
-   | jake.r | Jake | founder, travel | runs a design studio, posts from 4 countries | ... |
+   | handle | name | tier | signals | why | opener |
+   |---|---|---|---|---|---|
+   | jake.r | Jake | T1 | founder, travel | liked 3 reels, runs a design studio | ... |
    ```
 
-   Name = real first name from his full name or bio, never the username. No real name: skip the lead.
-8. Tell the coach: "<n> leads ready in approval.md. Delete any row you don't want, then type /prospector send."
+   Name = real first name from his full name or bio, never the username. No real name: skip the lead. Openers can use the warmth (he follows, he's been watching), never mention that you tracked likes.
+8. Tell the coach: "<n> leads ready in approval.md (T1 x, T2 x, T3 x, T4 x). Delete any row you don't want, then type /prospector send."
 
 ## Send (after he approves)
 

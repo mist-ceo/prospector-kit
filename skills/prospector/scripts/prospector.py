@@ -2,7 +2,7 @@
 """/prospector bookkeeping. Claude does the browser work and the judging; this keeps the lists honest.
 
   prospector.py init <dir> <coach_handle>
-  prospector.py candidates <dir> <date> [--limit 200]   likers.json or followers.json -> pull.txt (dedupe + drop pages)
+  prospector.py candidates <dir> <date> [--limit 400]   likers/followers/story_viewers -> pull.txt, tiered hottest first
   prospector.py sheet <dir> <date>                      profiles.json -> compact list to judge
   prospector.py cap <dir> <date>                        today's daily limit (ramp 50, 75, 100)
   prospector.py queue <dir> <date>                      approved rows not sent yet + what the caps allow
@@ -13,19 +13,28 @@ from datetime import datetime
 from pathlib import Path
 
 DEFAULT_CONFIG = {"coach_handle": "", "setdm_workspace": "", "daily_cap": 100, "hourly_cap": 20,
-                  "never_bio": [],
+                  "never_bio": [], "latin_only": True,
                   "ramp": [[0, 50], [7, 75], [14, 100]],
                   "max_followers": 20000, "min_followers": 0}
 PAGE_WORDS = re.compile(r"(shop|store|official|brand|boutique|apparel|clothing|supps|supplement|nutrition|"
                         r"agency|media|magazine|news|daily|memes|coach|trainer|"
                         r"realestate|crypto|forex|_ig$|promo|deals|giveaway)", re.I)
 MINOR = re.compile(r"(\b1[0-7] ?(y/?o|yrs?|years? old)\b|\bclass of 20(2[6-9]|3\d)\b|\bu1[0-8]\b|\bunder ?1[0-8]\b|"
-                   r"high ?school|middle school|\bgrade (9|1[0-2])\b|\b(born|b\.|bday|🎂) ?(in )?20(0[6-9]|1\d)\b)", re.I)
+                   r"high ?school|middle school|\bgrade (9|1[0-2])\b|\b(born|b\.|bday|birthday)\W.{0,20}?20(0[6-9]|1\d)\b|🎂.{0,20}?20(0[6-9]|1\d)\b|\b20(0[6-9]|1\d) ?🎂)", re.I)
 SELLER = re.compile(r"(\bcoach(ing)?\b|personal trainer|\btrainer\b|\bpt\b|online training|\bdm (me )?for\b|onlyfans|"
                     r"\bof\b ?link|\bcrypto\b|\bforex\b|\bday ?trad|\bpromo|\bcollabs?\b|\bambassador\b|\bugc\b|"
                     r"\bmlm\b|\bherbalife\b|\bcashapp\b)", re.I)
 BUSINESS_CATS = re.compile(r"(shop|store|brand|product|company|business|agency|media|news|magazine|"
                            r"gym|fitness|coach|trainer|nutrition|restaurant|real estate)", re.I)
+
+
+def non_latin(text):
+    """True when most letters are outside the Latin alphabet (Arabic, Persian, Cyrillic, Devanagari, CJK...)."""
+    letters = [ch for ch in text if ch.isalpha()]
+    if len(letters) < 4:
+        return False
+    latin = sum(ch.isascii() or "\u00c0" <= ch <= "\u024f" for ch in letters)
+    return latin / len(letters) < 0.5
 
 
 def handles(path):
@@ -77,42 +86,87 @@ def init(d, coach):
     print("ready:", d)
 
 
+def load_list(path):
+    if not path.exists():
+        return []
+    x = json.loads(path.read_text())
+    if isinstance(x, dict):
+        sys.exit(f"{path.name} is an error: {x}")
+    return x
+
+
+def known_follows(d):
+    p = d / "sent.csv"
+    return {r["handle"] for r in csv.DictReader(p.open()) if r["status"] == "follows"} if p.exists() else set()
+
+
+TIER_ORDER = {"T1": 0, "T2": 1, "check2": 2, "check1": 3, "T3": 4, "T4": 5}
+TIER_TEXT = {"T1": "T1 follows + liked 2+", "T2": "T2 follows + liked 1", "T3": "T3 follows",
+             "T4": "T4 story viewer", "check2": "liked 2+, CHECK FOLLOW", "check1": "liked 1, CHECK FOLLOW"}
+
+
+def tier(follows, liked, story):
+    if follows:
+        return "T1" if liked >= 2 else "T2" if liked == 1 else "T3"
+    if liked:
+        return "check2" if liked >= 2 else "check1"     # never sent unless the follow check finds them
+    return "T4" if story else None
+
+
 def candidates(d, date, limit):
+    """Merge today's sources (likers.json from the API, followers.json and story_viewers.json from his Chrome),
+    tier them hottest to coldest, write pull.txt in that order and sources.json with each lead's tier."""
     b = d / "batches" / date
-    src = b / "likers.json" if (b / "likers.json").exists() else b / "followers.json"
-    fol = json.loads(src.read_text())
-    if isinstance(fol, dict):
-        sys.exit(f"{src.name} is an error: {fol}")
-    fol.sort(key=lambda f: -len(f.get("liked") or []))
-    block = handles(d / "blacklist.txt") | sent_handles(d) | handles(d / "seen.txt")
+    likers = load_list(b / "likers.json")
+    followers = load_list(b / "followers.json")
+    story = load_list(b / "story_viewers.json")
+    if not (likers or followers or story):
+        sys.exit("no sources: need likers.json, followers.json or story_viewers.json in " + str(b))
+    norm = lambda x: (x.get("username") or "").strip().lstrip("@").lower()
+    fol = {norm(x) for x in followers} | known_follows(d)
+    seen_story = {norm(x) for x in story}
+    liked = {norm(x): len(x.get("liked") or []) for x in likers}
+    names = {norm(x): x.get("full_name") or "" for x in likers + followers + story}
+    waiting = handles(d / "waiting.txt")          # fit, liked, didn't follow yet
+    block = handles(d / "blacklist.txt") | sent_handles(d)
+    seen = handles(d / "seen.txt")
     coach = cfg(d)["coach_handle"].lower()
-    out, dropped = [], {"known": 0, "page": 0}
-    for f in fol:
-        u = (f.get("username") or "").strip().lstrip("@").lower()
-        if not u or u == coach or u in out:
+    rows, dropped = [], {"known": 0, "page": 0, "liked, not following": 0}
+    for u in set(names):
+        if not u or u == coach or u in block:
+            dropped["known"] += u in block
             continue
-        if u in block:
+        if u in seen and not (u in waiting and u in fol):   # a waiting liker who now follows comes back
             dropped["known"] += 1
             continue
-        if PAGE_WORDS.search(u) or PAGE_WORDS.search(f.get("full_name") or ""):
+        if PAGE_WORDS.search(u) or PAGE_WORDS.search(names[u]):
             dropped["page"] += 1
             continue
-        out.append(u)
-        if len(out) >= limit:
-            break
-    (b / "pull.txt").write_text("\n".join(out) + "\n")
-    with (d / "seen.txt").open("a") as s:
-        s.write("".join(u + "\n" for u in out))
-    print(f"from {src.name}: {len(out)} to pull (about ${len(out) * 0.0006:.2f}) | dropped known {dropped['known']}, pages {dropped['page']} | {b/'pull.txt'}")
+        t = tier(u in fol, liked.get(u, 0), u in seen_story)
+        if u in waiting and u not in fol:
+            dropped["liked, not following"] += 1
+            continue
+        if t:
+            rows.append((TIER_ORDER[t], -liked.get(u, 0), u, t))
+    rows.sort()
+    rows = rows[:limit]
+    (b / "pull.txt").write_text("".join(r[2] + "\n" for r in rows))
+    src = {r[2]: {"tier": r[3], "liked": liked.get(r[2], 0), "follows": r[2] in fol, "story": r[2] in seen_story} for r in rows}
+    (b / "sources.json").write_text(json.dumps(src, indent=1))
+    with (d / "seen.txt").open("a") as f:
+        f.write("".join(r[2] + "\n" for r in rows))
+    count = {}
+    for r in rows:
+        count[r[3]] = count.get(r[3], 0) + 1
+    print(f"{len(rows)} to pull (about ${len(rows) * 0.0006:.2f}) | " + ", ".join(f"{TIER_TEXT[k]}: {v}" for k, v in sorted(count.items(), key=lambda x: TIER_ORDER[x[0]])))
+    print(f"dropped {dropped} | {b / 'pull.txt'}")
 
 
 def sheet(d, date):
     c = cfg(d)
     b = d / "batches" / date
     prof = json.loads((b / "profiles.json").read_text())
-    liked = {}
-    if (b / "likers.json").exists():
-        liked = {x["username"]: len(x.get("liked") or []) for x in json.loads((b / "likers.json").read_text())}
+    src = json.loads((b / "sources.json").read_text()) if (b / "sources.json").exists() else {}
     never = re.compile("|".join(c["never_bio"]), re.I) if c["never_bio"] else None
     keep, drop = [], {}
     for h, p in prof.items():
@@ -137,15 +191,18 @@ def sheet(d, date):
             why = "bot or follow-for-follow"
         elif not p.get("media_count") and not (p.get("biography") or "").strip() and not (p.get("full_name") or "").strip():
             why = "empty account"
+        elif c["latin_only"] and non_latin(f"{p.get('biography') or ''} {p.get('full_name') or ''}"):
+            why = "non-English script"
         elif never and never.search(f"{p.get('biography') or ''} {p.get('full_name') or ''}"):
             why = "coach's never list"
         if why:
             drop[why] = drop.get(why, 0) + 1
             continue
         keep.append(p)
+    keep.sort(key=lambda p: (TIER_ORDER.get((src.get(p["username"]) or {}).get("tier"), 9), -((src.get(p["username"]) or {}).get("liked") or 0)))
     for p in keep:
         bio = (p.get("biography") or "").replace("\n", " / ")
-        lk = f"liked {liked[p['username']]} | " if p["username"] in liked else ""
+        lk = TIER_TEXT.get((src.get(p["username"]) or {}).get("tier"), "?") + " | "
         print(f"@{p['username']} | {lk}{p.get('full_name') or '-'} | {p.get('follower_count')}f | "
               f"{'private' if p.get('is_private') else 'public'} | {bio[:220]} | {' '.join(p.get('bio_links') or [])[:80]}")
     print(f"\n{len(keep)} to judge | dropped {drop}")
@@ -157,7 +214,7 @@ def approved(d, date):
     for line in p.read_text().splitlines():
         cells = [x.strip() for x in line.strip().strip("|").split("|")]
         if len(cells) >= 5 and cells[0] not in ("handle", "") and not set(cells[0]) <= set("-:"):
-            rows.append({"handle": cells[0].lstrip("@").lower(), "name": cells[1], "opener": cells[4]})
+            rows.append({"handle": cells[0].lstrip("@").lower(), "name": cells[1], "opener": cells[-1]})
     return rows
 
 
@@ -202,6 +259,9 @@ def log(d, date, handle, status, note=""):
             if new:
                 w.writerow(["time", "date", "handle", "status", "note"])
             w.writerow([now, date, handle, status, note])
+    if status == "not_follower":
+        with (d / "waiting.txt").open("a") as f:
+            f.write(handle + "\n")
     print("logged", handle, status)
 
 
@@ -213,7 +273,7 @@ if __name__ == "__main__":
     if cmd == "init":
         init(d, a[2])
     elif cmd == "candidates":
-        lim = int(a[a.index("--limit") + 1]) if "--limit" in a else 200
+        lim = int(a[a.index("--limit") + 1]) if "--limit" in a else 400
         candidates(d, a[2], lim)
     elif cmd == "sheet":
         sheet(d, a[2])
