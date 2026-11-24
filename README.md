@@ -21,6 +21,7 @@ Do the steps in this order. Each one has the mistake people make on it.
    - A window appears asking you to install. Click **Install** and accept the license. It is about 1 GB and takes 5 to 15 minutes.
    - The window can hide behind other windows, check the Dock for a new icon. If nothing appears after a minute, close Terminal, open it again and rerun the command.
    - Done when `xcode-select -p` prints a folder path. Do not go on before that.
+   - If you skip this, setup.sh catches it: it says MISSING, opens the same installer for you and stops. Finish the install and run setup.sh again.
 
 **2. Claude app, Code tab.** Install the Claude desktop app (claude.com/download) and sign in.
    - Open the **Code** tab. A normal Chat cannot run anything on your computer, so pasting the GitHub link into a chat does nothing useful.
@@ -85,7 +86,7 @@ Your Mac on, Claude open. The day's list lands in `~/Prospector/<your handle>/ba
 | What you see | What to do |
 |---|---|
 | Installer window never shows | Check behind other windows and the Dock, then rerun `xcode-select --install`. If it says the tools are already installed, they are, move on. |
-| Claude says python3 or git is missing | Step 1 is not finished. Wait for the install, check `xcode-select -p` prints a path, then rerun. |
+| Claude says python3 or git is missing, or setup.sh says MISSING Apple developer tools | Step 1 is not finished. Wait for the installer, check `xcode-select -p` prints a path, then run setup.sh again. |
 | Pasting the repo link into a chat does nothing | You are in Chat. Use the Code tab with a local folder chosen (step 2). |
 | Stuck on sign in | Wrong email. Use the one your Claude account was made with, in the app and in the Chrome extension. |
 | Composio asks for an API key | You used a shortcut or clicked Connect account. Neither is needed: Instant is on, no key. Close it and add the custom connector with the MCP link from Connect Agents (step 4). |

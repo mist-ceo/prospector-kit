@@ -5,6 +5,21 @@ cd "$(dirname "$0")" || exit 1
 ok() { printf "  ok   %s\n" "$1"; }
 miss() { printf "  MISSING  %s\n" "$1"; MISSING=1; }
 
+# Apple developer tools. On a fresh Mac, git and python3 exist only as stand-ins that pop up an
+# installer when something runs them, so "command -v" passes while nothing works. Check the real thing first.
+if [ "$(uname)" = "Darwin" ] && ! xcode-select -p >/dev/null 2>&1; then
+  case "$(command -v git)$(command -v python3)" in
+    */usr/bin/git*|*/usr/bin/python3*)
+      miss "Apple developer tools (git and python3 need them)"
+      echo "  An installer window is opening. Click Install, accept the license and wait 5 to 15 minutes (about 1 GB)."
+      echo "  If no window appears, check behind your other windows and the Dock, or run: xcode-select --install"
+      echo "  When it finishes, run setup.sh again."
+      xcode-select --install >/dev/null 2>&1
+      exit 1
+      ;;
+  esac
+fi
+
 echo "Updating"
 git pull -q --rebase origin main 2>/dev/null && ok "latest version" || echo "  (couldn't pull, using what's here)"
 
