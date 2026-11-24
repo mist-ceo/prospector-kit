@@ -9,7 +9,7 @@ It runs on YOUR computer, in YOUR Chrome, because Instagram already trusts that 
 - A Mac with Chrome, and your coaching Instagram logged in on that Chrome.
 - setdm.app logged in on that same Chrome, your workspace selected.
 - ONE Claude email. Use the same email in the Claude desktop app and in the Claude in Chrome extension. Signing in with a different email is the most common reason a setup stalls.
-- A card for Composio and a few dollars of credit for it (below).
+- A card to put $10 of credit in your Composio wallet (step 4).
 - 45 to 60 minutes with nothing else open.
 
 ## Install (once)
@@ -30,12 +30,36 @@ Do the steps in this order. Each one has the mistake people make on it.
 
 **3. Chrome.** Install the **Claude in Chrome** extension from the Chrome Web Store and sign in with the same Claude email. In that Chrome stay logged into instagram.com as your coaching account and into setdm.app. Keep using this Chrome for Instagram as normal.
 
-**4. Composio (reads likers and profiles).** It runs on Composio's "Instant" mode: no app account and no API key, you just keep a small credit balance in your Composio wallet.
-   - **Account:** go to composio.dev, click Get started, Continue with Google, and skip the onboarding questions.
-   - **GetAnyAPI:** in the left menu click **Search**, type `getanyapi` and open **GetAnyAPI**. You should see a blue box that says **Instant is on** and "Calls are paid from your team's wallet". That is all you need. Do NOT click Connect account and do not look for an API key.
-   - **Wallet:** click **View wallet** in that blue box (or **Wallet** at the bottom of the left menu). New wallets start with about $2. Click **Add credits** and add **$8 to $10**, not more. A full day of Prospector costs about 30 cents (profile lookups are a tenth of a cent each), so $10 lasts roughly a month. Top up when the balance runs low.
-   - **Connect it to Claude:** in the left menu click **Connect Agents**. Do NOT use the Install buttons next to Claude, they ask for an API key. Copy the link in the **MCP** box on the right (`https://connect.composio.dev/mcp`). In the Claude app go to Settings, then Connectors, then **Add custom connector**. Name it Composio, paste the link, continue, sign in with the same Composio account and allow.
-   - **Check:** Composio shows as connected under Settings, Connectors. In the Composio dashboard the Wallet page lists each lookup the kit makes, so you can see what it spends.
+**4. Composio (reads likers and profiles).** It runs on Composio's "Instant" mode: no app account and no API key, you just keep a small credit balance in your Composio wallet. The red boxes in the pictures are what you click or fill in.
+
+   **4a. Account.** Go to composio.dev, click Get started, Continue with Google, and skip the onboarding questions.
+
+   **4b. Find GetAnyAPI.** In the left menu click **Search**, type `getanyapi` and click the **GetAnyAPI** result.
+
+   ![Search for getanyapi](images/01-search-getanyapi.png)
+
+   **4c. Check Instant is on.** The page shows a blue box that says **Instant is on** and "Calls are paid from your team's wallet". That is all you need. Do NOT click Connect account and do not look for an API key. Click **View wallet**.
+
+   ![Instant is on, click View wallet](images/02-instant-is-on.png)
+
+   **4d. Add $10.** New wallets start with about $2. Click **Add credits** and add **$10**. That is enough for now, a full day of Prospector costs about 30 cents. Top up when the balance runs low.
+
+   ![Wallet, click Add credits](images/03-wallet-add-credits.png)
+
+   **4e. Copy the MCP link.** In the left menu click **Connect Agents**. Do NOT use the Install buttons next to Claude, they ask for an API key. Copy the link in the **MCP** box on the right: `https://connect.composio.dev/mcp`
+
+   ![Connect Agents, copy the MCP link](images/04-connect-agents-mcp-link.png)
+
+   **4f. Add it to Claude.** In the Claude app click **Plugins** in the left menu (or Settings, then Connectors), click **Add**, then **Add custom connector**. The pictures are from claude.ai in a browser, the app has the same form.
+
+   ![Add, then Add custom connector](images/05-add-custom-connector.png)
+
+   Type the name **Composio**, paste the link, click **Continue**, sign in with the same Composio account and allow.
+
+   ![Fill in the connector form](images/06-connector-dialog.png)
+
+   **4g. Check.** Composio now shows as a connected plugin in Claude. In the Composio dashboard the Wallet page lists each lookup the kit makes, so you can see what it spends.
+
    - There is no Instagram entry in Claude's own plugin list and you do not need one. The kit uses your logged-in Chrome for Instagram.
    - Use your own Composio account only, never someone else's: it can reach every app connected to it.
 
