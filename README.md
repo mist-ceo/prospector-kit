@@ -8,6 +8,7 @@ It runs on YOUR computer, in YOUR Chrome, because Instagram already trusts that 
 
 - A Mac with Chrome, and your coaching Instagram logged in on that Chrome.
 - setdm.app logged in on that same Chrome, your workspace selected.
+- **A paid Claude plan, Pro at $20 a month at minimum** (claude.ai/upgrade). The free plan has no Code tab, so nothing here works without it. Sign up for it with the same email you use in step 2. If Claude later says you've hit your usage limit during the morning run, move up to a bigger plan.
 - ONE Claude email. Use the same email in the Claude desktop app and in the Claude in Chrome extension. Signing in with a different email is the most common reason a setup stalls.
 - A card to put $10 of credit in your Composio wallet (step 4).
 - 45 to 60 minutes with nothing else open.
@@ -87,6 +88,7 @@ Your Mac on, Claude open. The day's list lands in `~/Prospector/<your handle>/ba
 |---|---|
 | Installer window never shows | Check behind other windows and the Dock, then rerun `xcode-select --install`. If it says the tools are already installed, they are, move on. |
 | Claude says python3 or git is missing, or setup.sh says MISSING Apple developer tools | Step 1 is not finished. Wait for the installer, check `xcode-select -p` prints a path, then run setup.sh again. |
+| No Code tab in the Claude app, or Claude says your plan doesn't include it | You are on the free plan. Upgrade to Pro ($20 a month) or higher on the same email, then restart the app. |
 | Pasting the repo link into a chat does nothing | You are in Chat. Use the Code tab with a local folder chosen (step 2). |
 | Stuck on sign in | Wrong email. Use the one your Claude account was made with, in the app and in the Chrome extension. |
 | Composio asks for an API key | You used a shortcut or clicked Connect account. Neither is needed: Instant is on, no key. Close it and add the custom connector with the MCP link from Connect Agents (step 4). |
