@@ -30,10 +30,12 @@ Do the steps in this order. Each one has the mistake people make on it.
 
 **3. Chrome.** Install the **Claude in Chrome** extension from the Chrome Web Store and sign in with the same Claude email. In that Chrome stay logged into instagram.com as your coaching account and into setdm.app. Keep using this Chrome for Instagram as normal.
 
-**4. Composio (reads likers and profiles).** Make your own account at composio.dev (Continue with Google is fastest) and skip the onboarding questions.
-   - Connect the **GetAnyAPI** app. Add a card and put in **$8 to $10 of credit**, not more. Every lookup costs a fraction of a cent, so this lasts weeks.
-   - In Composio, copy your **MCP link**. In the Claude app go to Settings, then Connectors, then **Add custom connector**. Name it Composio, paste the link, continue, sign in when it asks and allow.
-   - If composio.dev offers a "paste this into Claude" shortcut and Claude then asks for an API key, close it and use the connector steps above instead.
+**4. Composio (reads likers and profiles).** It runs on Composio's "Instant" mode: no app account and no API key, you just keep a small credit balance in your Composio wallet.
+   - **Account:** go to composio.dev, click Get started, Continue with Google, and skip the onboarding questions.
+   - **GetAnyAPI:** in the left menu click **Search**, type `getanyapi` and open **GetAnyAPI**. You should see a blue box that says **Instant is on** and "Calls are paid from your team's wallet". That is all you need. Do NOT click Connect account and do not look for an API key.
+   - **Wallet:** click **View wallet** in that blue box (or **Wallet** at the bottom of the left menu). New wallets start with about $2. Click **Add credits** and add **$8 to $10**, not more. A full day of Prospector costs about 30 cents (profile lookups are a tenth of a cent each), so $10 lasts roughly a month. Top up when the balance runs low.
+   - **Connect it to Claude:** in the left menu click **Connect Agents**. Do NOT use the Install buttons next to Claude, they ask for an API key. Copy the link in the **MCP** box on the right (`https://connect.composio.dev/mcp`). In the Claude app go to Settings, then Connectors, then **Add custom connector**. Name it Composio, paste the link, continue, sign in with the same Composio account and allow.
+   - **Check:** Composio shows as connected under Settings, Connectors. In the Composio dashboard the Wallet page lists each lookup the kit makes, so you can see what it spends.
    - There is no Instagram entry in Claude's own plugin list and you do not need one. The kit uses your logged-in Chrome for Instagram.
    - Use your own Composio account only, never someone else's: it can reach every app connected to it.
 
@@ -62,9 +64,9 @@ Your Mac on, Claude open. The day's list lands in `~/Prospector/<your handle>/ba
 | Claude says python3 or git is missing | Step 1 is not finished. Wait for the install, check `xcode-select -p` prints a path, then rerun. |
 | Pasting the repo link into a chat does nothing | You are in Chat. Use the Code tab with a local folder chosen (step 2). |
 | Stuck on sign in | Wrong email. Use the one your Claude account was made with, in the app and in the Chrome extension. |
-| Composio asks for an API key | Skip that shortcut. Add the custom connector with your MCP link (step 4). |
+| Composio asks for an API key | You used a shortcut or clicked Connect account. Neither is needed: Instant is on, no key. Close it and add the custom connector with the MCP link from Connect Agents (step 4). |
 | `/prospector check` says Chrome is not connected | Open Chrome, make sure the Claude in Chrome extension is signed in with the same email, then check again. |
-| `/prospector check` says Composio or GetAnyAPI is missing | Reconnect the custom connector in Claude, and check GetAnyAPI is active and has credit in Composio. |
+| `/prospector check` says Composio or GetAnyAPI is missing | Reconnect the custom connector in Claude. In Composio open Search, getanyapi, and check it says Instant is on, then open Wallet and check the balance is above zero. An empty wallet stops every lookup. |
 | setup.sh says "couldn't pull" | It was installed as a zip. Do the git clone fix in step 5. |
 | Instagram shows any warning or asks you to log in again | The kit stops by itself. Handle it yourself in Chrome, do not send for 48 hours, and tell whoever onboarded you. |
 
