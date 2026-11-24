@@ -24,13 +24,24 @@ Do the steps in this order. Each one has the mistake people make on it.
    - Done when `xcode-select -p` prints a folder path. Do not go on before that.
    - If you skip this, setup.sh catches it: it says MISSING, opens the same installer for you and stops. Finish the install and run setup.sh again.
 
-**2. Claude app, Code tab.** Install the Claude desktop app (claude.com/download) and sign in.
-   - Open the **Code** tab. A normal Chat cannot run anything on your computer, so pasting the GitHub link into a chat does nothing useful.
-   - Start a **new session** and choose a local folder at the bottom. If you have none, create a folder called Claude on your Desktop and pick it. Click **Trust** or **Allow** when it asks.
+**2. Claude app, Code tab.** The red boxes in the pictures are what you click.
+
+   **2a. Download and sign in.** Go to claude.com/download, click **Download for macOS**, open the file, drag Claude into Applications, open it and sign in.
+
+   ![Download for macOS](images/07-download-claude.png)
+
+   **2b. Open the Code tab and start a new session.** Click the **`</>`** icon at the top left of the app (the second icon), then click **New**. A normal Chat cannot run anything on your computer, so pasting the GitHub link into a chat does nothing useful.
+
+   ![Code tab and New](images/08-code-tab-and-new.png)
+
+   **2c. Choose Local and your folder.** Under the message box click the environment dropdown (it shows a cloud and says Auto) and pick **Local**. Then click **Open folder** and choose a folder. If you have none, create a folder called Claude on your Desktop first and pick it. Click **Trust** or **Allow** when it asks. The picture is from claude.ai in a browser, where Local says "Desktop only". In the desktop app that row is clickable.
+
+   ![Pick Local in the dropdown](images/09-choose-local.png)
+
    - If it keeps asking you to sign in, you used a different email than the one on your Claude account. Log out and in with the right one.
    - The yellow "Notifications are turned off" banner is harmless, close it.
 
-**3. Chrome.** Install the **Claude in Chrome** extension from the Chrome Web Store and sign in with the same Claude email. In that Chrome stay logged into instagram.com as your coaching account and into setdm.app. Keep using this Chrome for Instagram as normal.
+**3. Chrome.** Install the **Claude in Chrome** extension: open [the Chrome Web Store page](https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn), click **Add to Chrome**, then **Add extension**, and sign in with the same Claude email. In that Chrome stay logged into instagram.com as your coaching account and into setdm.app. Keep using this Chrome for Instagram as normal.
 
 **4. Composio (reads likers and profiles).** It runs on Composio's "Instant" mode: no app account and no API key, you just keep a small credit balance in your Composio wallet. The red boxes in the pictures are what you click or fill in.
 
